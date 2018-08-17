@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Brasil Colorido</title>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://unpkg.com/topojson@3"></script>
+  <style media="screen">
+    .title {
+      text-align: center;
+    }
+    .wrapper {
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+    }
+    #map {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div id="map"></div>
+  </div>
+
+  <script type="text/javascript">
+    const width = 640;
+    const height = 320;
+    const margin = { top: 30, bottom: 30, left: 30, right: 30 };
+    const viewBox = {
+        width: width + margin.right + margin.left,
+        height: height + margin.left + margin.right
+      }
+
+    let svg = d3.select('#map').append('svg')
+      .attr('width', '100%')
+      .attr('viewBox', '0 0 ' + viewBox.width + ' ' + viewBox.height);
+    let g = svg.append('g')
+      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    let projection = d3.geoAlbers()
+      .center([-55, -2])
+      .rotate([0, 0])
+      .parallels([0, 0])
+      .scale(1400);
+    let path = d3.geoPath().projection(projection);
+    let radius = d3.scaleSqrt();
+    let shape;
+
+    d3.json('br.json')
+      .then(data => {
+        shape = data;
+        draw();
+        window.setInterval(draw, 10000);
+      });
+
+    function draw() {
+      g.selectAll('.rect').remove();
+      let location = randomState();
+      console.log(location);
+      d3.select('#title').text(location.Nome);
+      let shapeCopy = JSON.parse(JSON.stringify(shape));
+      shapeCopy.objects.Munic.geometries = shapeCopy.objects.Munic.geometries.filter(geom => geom.properties.uf === location.Sigla);
+
+      const cities = topojson.feature(shapeCopy, shapeCopy.objects.Munic);
+
+      radius
+        .domain( d3.extent(cities.features, (d) => path.area(d) ) )
+        .range ( [d3.min(cities.features, (d) => Math.ceil(getPathRadius(path.bounds(d))) ), d3.max(cities.features, (d) => Math.floor(getPathRadius(path.bounds(d))) )] );
+
+      centerMap(cities);
+
+      let rects = g.selectAll('.rect')
+        .data(cities.features)
+        .enter()
+          .append('rect')
+            .attr('class', (d) => 'rect m-' + d.properties.codigo)
+            .attr('x', (d) => path.bounds(d)[0][0])
+            .attr('y', (d) => path.bounds(d)[0][1])
+            // .attr('width', (d) => getPathWidth(path.bounds(d)))
+            // .attr('height', (d) => getPathHeight(path.bounds(d)))
+            .attr('width', 1)
+            .attr('height', 1)
+            .attr('fill', 'none')
+            .attr('stroke', (d) => randomColor())
+            // .attr('fill', (d) => randomColor())
+            // .attr('stroke', 'none')
+            .attr('stroke-width', 1.2);
+
+      let delay = 15
+      if (delay*cities.features.length > 10000) {
+        delay = (10000 - 2000) / cities.features.length;
+      }
+
+      rects.transition().duration(500).delay((d, i) => i*delay)
+        .attr('width', (d) => getPathWidth(path.bounds(d)))
+        .attr('height', (d) => getPathHeight(path.bounds(d)));
+
+      return;
+    }
+
+    let states = [{"ID": "1","Sigla": "AC","Nome": "Acre"},{"ID": "2","Sigla": "AL","Nome": "Alagoas"},{"ID": "3","Sigla": "AM","Nome": "Amazonas"},{"ID": "4","Sigla": "AP","Nome": "Amapá"},{"ID": "5","Sigla": "BA","Nome": "Bahia"},{"ID": "6","Sigla": "CE","Nome": "Ceará"},{"ID": "7","Sigla": "DF","Nome": "Distrito Federal"},{"ID": "8","Sigla": "ES","Nome": "Espírito Santo"},{"ID": "9","Sigla": "GO","Nome": "Goiás"},{"ID": "10","Sigla": "MA","Nome": "Maranhão"},{"ID": "11","Sigla": "MG","Nome": "Minas Gerais"},{"ID": "12","Sigla": "MS","Nome": "Mato Grosso do Sul"},{"ID": "13","Sigla": "MT","Nome": "Mato Grosso"},{"ID": "14","Sigla": "PA","Nome": "Pará"},{"ID": "15","Sigla": "PB","Nome": "Paraíba"},{"ID": "16","Sigla": "PE","Nome": "Pernambuco"},{"ID": "17","Sigla": "PI","Nome": "Piauí"},{"ID": "18","Sigla": "PR","Nome": "Paraná"},{"ID": "19","Sigla": "RJ","Nome": "Rio de Janeiro"},{"ID": "20","Sigla": "RN","Nome": "Rio Grande do Norte"},{"ID": "21","Sigla": "RO","Nome": "Rondônia"},{"ID": "22","Sigla": "RR","Nome": "Roraima"},{"ID": "23","Sigla": "RS","Nome": "Rio Grande do Sul"},{"ID": "24","Sigla": "SC","Nome": "Santa Catarina"},{"ID": "25","Sigla": "SE","Nome": "Sergipe"},{"ID": "26","Sigla": "SP","Nome": "São Paulo"},{"ID": "27","Sigla": "TO","Nome": "Tocantins"}];
+
+    function randomState() {
+      return states[Math.round(Math.random() * 10)];
+    }
+
+    function randomColor() {
+      let r = Math.round(Math.random() * 255);
+      let g = Math.round(Math.random() * 255);
+      let b = Math.round(Math.random() * 255);
+      return 'rgba(' + r + ', ' + g + ', ' + b + ', 0.8)'
+    }
+
+    function getPathWidth(bounds) {
+      return bounds[1][0] - bounds[0][0];
+    }
+
+    function getPathHeight(bounds) {
+      return bounds[1][1] - bounds[0][1];
+    }
+
+    function getPathRadius(bounds) {
+      return d3.min([ getPathWidth(bounds), getPathHeight(bounds)]) * 0.25;
+    }
+
+    function centerMap(features) {
+      projection.scale(1).translate([0, 0]);
+
+      const bounds = path.bounds(features);
+      const scaleFactor = .95 / Math.max(
+        (bounds[1][0] - bounds[0][0]) / width,
+        (bounds[1][1] - bounds[0][1]) / height
+      );
+      const translateFactor = [
+        (width - scaleFactor * (bounds[1][0] + bounds[0][0])) / 2,
+        (height - scaleFactor * (bounds[1][1] + bounds[0][1])) / 2
+      ];
+
+      projection.scale(scaleFactor).translate(translateFactor);
+    }
+
+    function changeVisibility() {
+      d3.selectAll('.' + this.value).style('opacity', (this.checked) ? '1' : '0');
+    }
+  </script>
+</body>
+</html>
