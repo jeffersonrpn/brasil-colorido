@@ -53,6 +53,9 @@
     let radius = d3.scaleSqrt();
     let shape;
 
+    let states = [{"ID": "1","Sigla": "AC","Nome": "Acre"},{"ID": "2","Sigla": "AL","Nome": "Alagoas"},{"ID": "3","Sigla": "AM","Nome": "Amazonas"},{"ID": "4","Sigla": "AP","Nome": "Amapá"},{"ID": "5","Sigla": "BA","Nome": "Bahia"},{"ID": "6","Sigla": "CE","Nome": "Ceará"},{"ID": "7","Sigla": "DF","Nome": "Distrito Federal"},{"ID": "8","Sigla": "ES","Nome": "Espírito Santo"},{"ID": "9","Sigla": "GO","Nome": "Goiás"},{"ID": "10","Sigla": "MA","Nome": "Maranhão"},{"ID": "11","Sigla": "MG","Nome": "Minas Gerais"},{"ID": "12","Sigla": "MS","Nome": "Mato Grosso do Sul"},{"ID": "13","Sigla": "MT","Nome": "Mato Grosso"},{"ID": "14","Sigla": "PA","Nome": "Pará"},{"ID": "15","Sigla": "PB","Nome": "Paraíba"},{"ID": "16","Sigla": "PE","Nome": "Pernambuco"},{"ID": "17","Sigla": "PI","Nome": "Piauí"},{"ID": "18","Sigla": "PR","Nome": "Paraná"},{"ID": "19","Sigla": "RJ","Nome": "Rio de Janeiro"},{"ID": "20","Sigla": "RN","Nome": "Rio Grande do Norte"},{"ID": "21","Sigla": "RO","Nome": "Rondônia"},{"ID": "22","Sigla": "RR","Nome": "Roraima"},{"ID": "23","Sigla": "RS","Nome": "Rio Grande do Sul"},{"ID": "24","Sigla": "SC","Nome": "Santa Catarina"},{"ID": "25","Sigla": "SE","Nome": "Sergipe"},{"ID": "26","Sigla": "SP","Nome": "São Paulo"},{"ID": "27","Sigla": "TO","Nome": "Tocantins"}];
+    let pickedStates = [];
+
     d3.json('br.json')
       .then(data => {
         shape = data;
@@ -63,7 +66,7 @@
     function draw() {
       g.selectAll('.rect').remove();
       let location = randomState();
-      console.log(location);
+      console.log(location.Nome);
       d3.select('#title').text(location.Nome);
       let shapeCopy = JSON.parse(JSON.stringify(shape));
       shapeCopy.objects.Munic.geometries = shapeCopy.objects.Munic.geometries.filter(geom => geom.properties.uf === location.Sigla);
@@ -83,15 +86,11 @@
             .attr('class', (d) => 'rect m-' + d.properties.codigo)
             .attr('x', (d) => path.bounds(d)[0][0])
             .attr('y', (d) => path.bounds(d)[0][1])
-            // .attr('width', (d) => getPathWidth(path.bounds(d)))
-            // .attr('height', (d) => getPathHeight(path.bounds(d)))
             .attr('width', 1)
             .attr('height', 1)
             .attr('fill', 'none')
             .attr('stroke', (d) => randomColor())
-            // .attr('fill', (d) => randomColor())
-            // .attr('stroke', 'none')
-            .attr('stroke-width', 1.2);
+            .attr('stroke-width', 2);
 
       let delay = 15
       if (delay*cities.features.length > 10000) {
@@ -105,10 +104,17 @@
       return;
     }
 
-    let states = [{"ID": "1","Sigla": "AC","Nome": "Acre"},{"ID": "2","Sigla": "AL","Nome": "Alagoas"},{"ID": "3","Sigla": "AM","Nome": "Amazonas"},{"ID": "4","Sigla": "AP","Nome": "Amapá"},{"ID": "5","Sigla": "BA","Nome": "Bahia"},{"ID": "6","Sigla": "CE","Nome": "Ceará"},{"ID": "7","Sigla": "DF","Nome": "Distrito Federal"},{"ID": "8","Sigla": "ES","Nome": "Espírito Santo"},{"ID": "9","Sigla": "GO","Nome": "Goiás"},{"ID": "10","Sigla": "MA","Nome": "Maranhão"},{"ID": "11","Sigla": "MG","Nome": "Minas Gerais"},{"ID": "12","Sigla": "MS","Nome": "Mato Grosso do Sul"},{"ID": "13","Sigla": "MT","Nome": "Mato Grosso"},{"ID": "14","Sigla": "PA","Nome": "Pará"},{"ID": "15","Sigla": "PB","Nome": "Paraíba"},{"ID": "16","Sigla": "PE","Nome": "Pernambuco"},{"ID": "17","Sigla": "PI","Nome": "Piauí"},{"ID": "18","Sigla": "PR","Nome": "Paraná"},{"ID": "19","Sigla": "RJ","Nome": "Rio de Janeiro"},{"ID": "20","Sigla": "RN","Nome": "Rio Grande do Norte"},{"ID": "21","Sigla": "RO","Nome": "Rondônia"},{"ID": "22","Sigla": "RR","Nome": "Roraima"},{"ID": "23","Sigla": "RS","Nome": "Rio Grande do Sul"},{"ID": "24","Sigla": "SC","Nome": "Santa Catarina"},{"ID": "25","Sigla": "SE","Nome": "Sergipe"},{"ID": "26","Sigla": "SP","Nome": "São Paulo"},{"ID": "27","Sigla": "TO","Nome": "Tocantins"}];
-
     function randomState() {
-      return states[Math.round(Math.random() * 10)];
+      if (states.length > 0) {
+        let index = Math.round(Math.random() * (states.length - 1));
+        let removed = states.splice(index, 1);
+        pickedStates.push(removed[0]);
+        return removed[0];
+      } else {
+        states = pickedStates.slice();
+        pickedStates = [];
+        return randomState();
+      }
     }
 
     function randomColor() {
